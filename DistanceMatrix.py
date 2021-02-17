@@ -78,8 +78,8 @@ class DistanceMatrix(object):
         grid = DistanceMatrix.__build_matrix(geocodes=geocodes, response=response)
         matrix = []
         for row in grid:
-            result = [x[key] for x in row]
-            matrix.append(result)
+            matrix.append([x[key] for x in row])
+
         return (matrix)
         
     def __identical_list(list1: list, list2: list) -> bool:
@@ -111,7 +111,7 @@ class DistanceMatrix(object):
         """
         matrix = []
 
-        if response['statusCode'] == 200:
+        if len(response) > 0 and ('statusCode' in response.keys() and response['statusCode'] == 200):
             row = []
 
             for counter, item in enumerate(response["resourceSets"][0]['resources'][0]['results']):
@@ -122,7 +122,8 @@ class DistanceMatrix(object):
                     matrix.append(row)
                     row = []
         else:
-            print(f"Execution stopped with HTTP code {response['statusCode']} {response['statusDescription']}")
+            if len(response) > 0 and ('statusCode' in response.keys()):
+                print(f"Execution stopped with HTTP code {response['statusCode']} {response['statusDescription']}")
 
         return matrix
     
@@ -153,7 +154,11 @@ class DistanceMatrix(object):
                 "key" : api_key
             }
             url = DistanceMatrix.__api_urls['base']
-            DistanceMatrix.__response = requests.get(url, params=parameters).json()
+            response = requests.get(url, params=parameters)
+
+            if response.status_code == 200:
+                DistanceMatrix.__response = response.json()
         else:
             DistanceMatrix.__number_of_requests_saved += 1
+
         return DistanceMatrix.__response

@@ -1,4 +1,5 @@
 import requests
+import time
 
 class Address(object):
     """This class provides the mechanism for working building stand U.S. addresses.
@@ -145,17 +146,21 @@ class Address(object):
             self.__info = Address.Geocode.get_geocode(self).json()
             
             # print(self._info)
+            try:
+                longitude, latitude = tuple(self.__info['features'][0]['geometry']['coordinates'])
 
-            longitude, latitude = tuple(self.__info['features'][0]['geometry']['coordinates'])
-            
-            if latitude < -90 or latitude > 90:
-                raise Exception("Illegal argument, latitude must be between -90 and 90")
+                if latitude < -90 or latitude > 90:
+                    raise ValueError("Illegal argument, latitude must be between -90 and 90")
 
-            if longitude < -180 or longitude > 180:
-                raise Exception("Illegal argument, longitude must be between -180 and 180")
+                if longitude < -180 or longitude > 180:
+                    raise ValueError("Illegal argument, longitude must be between -180 and 180")
 
-            self.__latitude = latitude
-            self.__longitude = longitude
+                self.__latitude = latitude
+                self.__longitude = longitude
+            except (BaseException, Exception):
+                self.__latitude = None
+                self.__longitude = None
+
     
     @staticmethod
     def get_geocodes(addresses:list) -> list:
@@ -167,14 +172,23 @@ class Address(object):
 
         Returns:
             List of geocodes representing the geocode coordinates of address passed as arguments.
+            A list of addresses whose geocodes could not be retrieved is also returned when applicable.
         """
         geocodes = []
+        log = None
         for address in addresses:
             address.geocode()
-            result = '{latitude}, {longitude}'.format(latitude = str(address.latitude), \
-                                                    longitude = str(address.longitude))
-            geocodes.append(result)
-        return geocodes
+            if not(address.latitude is None or address.longitude is None):
+                result = '{latitude}, {longitude}'.format(latitude = str(address.latitude), \
+                                                        longitude = str(address.longitude))
+                geocodes.append(result)
+            else:
+                if not log:
+                    log = []
+                log.append(address)
+            time.sleep(0.5)
+
+        return geocodes, log
 
     class Geocode():
         """This inner class provides the mechanism for geocoding a standard U.S. address."""
